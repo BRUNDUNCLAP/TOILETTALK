@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TOILET TALK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0A0807;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      cursor: default;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #canvas {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── GIANT BOTTOM HEADLINE ── */
+    #giant-headline {
+      position: fixed;
+      bottom: -0.06em;
+      left: 0;
+      width: 100vw;
+      font-family: 'Big Shoulders Display', 'Impact', 'Arial Narrow', sans-serif;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #FFFFFF;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 0;
+      line-height: 0.85;
+      letter-spacing: -0.02em;
+      user-select: none;
+      text-align: center;
+      font-size: 18vw;
+    }
+
+    /* ── CARD ── */
+    .card {
+      position: absolute;
+      border-radius: 4px;
+      padding: 32px 28px;
+      cursor: grab;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow 0.25s ease;
+      overflow: hidden;
+    }
+
+    .card:active { cursor: grabbing; }
+
+    .card.dragging {
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+      cursor: grabbing;
+    }
+
+    /* ── RESIZE HANDLE ── */
+    .card-resize-handle {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 18px;
+      height: 18px;
+      cursor: nwse-resize;
+      z-index: 3;
+      opacity: 0.35;
+      transition: opacity 0.2s ease;
+    }
+
+    .card-resize-handle:hover {
+      opacity: 0.8;
+    }
+
+    .card-resize-handle svg {
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .card.resizing {
+      cursor: nwse-resize;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+    }
+
+    .card-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-headline {
+      font-family: 'Big Shoulders Display', 'Impact', 'Arial Narrow', sans-serif;
+      text-transform: uppercase;
+      line-height: 1.05;
+      margin-bottom: 14px;
+    }
+
+    .card-body {
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      line-height: 1.6;
+      max-width: 55ch;
+    }
+
+    .card-expand-btn {
+      position: absolute;
+      bottom: 14px;
+      right: 16px;
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      z-index: 2;
+      opacity: 0.5;
+      padding: 0;
+    }
+
+    .card-expand-btn:hover {
+      transform: scale(1.25);
+      opacity: 1;
+    }
+
+    .card-expand-btn svg {
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+    }
+
+    /* ── EXPANDED OVERLAY ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .overlay.active {
+      pointer-events: auto;
+      opacity: 1;
+    }
+
+    .overlay-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 8, 7, 0);
+      transition: background 0.4s ease;
+    }
+
+    .overlay.active .overlay-backdrop {
+      background: rgba(10, 8, 7, 0.6);
+    }
+
+    .overlay-card {
+      position: absolute;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      border-radius: 0;
+      padding: 72px 80px;
+      overflow-y: auto;
+      transform: scale(0.92);
+      opacity: 0;
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                  opacity 0.35s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .overlay.active .overlay-card {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .overlay-inner {
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .overlay-card .card-headline {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      margin-bottom: 28px;
+      line-height: 1.05;
+    }
+
+    .overlay-card .card-body {
+      font-size: clamp(1rem, 1.8vw, 1.35rem);
+      overflow: visible;
+      margin-bottom: 8px;
+    }
+
+    .overlay-card .card-detail {
+      margin-top: 32px;
+      padding-top: 32px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+      line-height: 1.7;
+      max-width: 700px;
+    }
+
+    .overlay-close {
+      position: absolute;
+      top: 28px;
+      right: 32px;
+      width: 44px;
+      height: 44px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      opacity: 0.6;
+    }
+
+    .overlay-close:hover {
+      opacity: 1;
+      transform: scale(1.15);
+    }
+
+    .overlay-close svg {
+      width: 28px;
+      height: 28px;
+      pointer-events: none;
+    }
+
+    /* ── SCATTER BUTTON ── */
+    #scatter-btn {
+      position: fixed;
+      bottom: 78px;
+      right: 24px;
+      z-index: 999;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 8px;
+      background: #Eb4604;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease, transform 0.2s ease;
+      opacity: 1;
+    }
+
+    #scatter-btn:hover {
+      background: #F77E0D;
+      transform: scale(1.1);
+    }
+
+    #scatter-btn svg {
+      width: 22px;
+      height: 22px;
+      pointer-events: none;
+    }
+
+    /* ── ALIGN BUTTON ── */
+    #align-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 8px;
+      background: #Eb4604;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+      opacity: 1;
+    }
+
+    #align-btn:hover {
+      background: #F77E0D;
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    #align-btn svg {
+      width: 22px;
+      height: 22px;
+      pointer-events: none;
+    }
+
+    .card.aligning {
+      transition: left 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                  top 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                  width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                  height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                  box-shadow 0.25s ease;
+    }
+
+    /* ── SCROLLBAR ── */
+    .overlay-card::-webkit-scrollbar { width: 6px; }
+    .overlay-card::-webkit-scrollbar-track { background: transparent; }
+    .overlay-card::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+    /* ── BOTTOM GRADIENT ── */
+    #headline-gradient {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(to bottom, transparent 0%, #0A0807 75%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ── TABLET ── */
+    @media (max-width: 1024px) {
+      body {
+        overflow-x: hidden;
+        overflow-y: auto;
+        height: auto;
+      }
+
+      #canvas {
+        position: relative;
+        width: 100%;
+        height: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 24px 24px 200px; /* bottom padding overridden by JS */
+      }
+
+      .card {
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        width: 100% !important;
+        height: 107px !important;
+        cursor: default;
+        padding: 28px 24px;
+        z-index: 0 !important;
+      }
+
+      .card:active { cursor: default; }
+
+      .card.dragging {
+        box-shadow: none;
+        cursor: default;
+      }
+
+      #canvas .card-body { display: none; }
+      #canvas .card-headline { white-space: normal !important; margin-bottom: 0; }
+      #canvas .card-content { justify-content: center; }
+      .card-resize-handle { display: none; }
+
+      .card-expand-btn {
+        width: 44px;
+        height: 44px;
+      }
+
+      .card-expand-btn svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      #scatter-btn,
+      #align-btn { display: none; }
+
+      #giant-headline {
+        z-index: 2;
+        line-height: 0.8;
+      }
+      .headline-line {
+        display: block;
+        white-space: nowrap;
+      }
+      #headline-gradient {
+        display: block;
+        background: linear-gradient(to bottom, transparent 0%, #0A0807 12%, #0A0807 100%);
+      }
+
+      .overlay-card {
+        padding: 48px 40px;
+      }
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 600px) {
+      #canvas {
+        gap: 16px;
+        padding: 16px 16px 180px;
+      }
+
+      .card {
+        padding: 20px 16px;
+        height: 87px !important;
+      }
+
+      .overlay-card {
+        padding: 32px 24px;
+      }
+
+      .overlay-close {
+        top: 16px;
+        right: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="giant-headline"><span class="headline-line">LETS TALK</span> <span class="headline-line">TOILETS</span></div>
+  <div id="canvas"></div>
+
+  <!-- Scatter button -->
+  <button id="scatter-btn" title="Scatter cards">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="2" width="6" height="6" rx="1"/>
+      <rect x="14" y="4" width="5" height="5" rx="1"/>
+      <rect x="6" y="13" width="7" height="7" rx="1"/>
+      <rect x="16" y="15" width="4" height="4" rx="1"/>
+    </svg>
+  </button>
+
+  <!-- Align button -->
+  <button id="align-btn" title="Align cards">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <rect x="1" y="8" width="6" height="8" rx="1"/>
+      <rect x="9" y="8" width="6" height="8" rx="1"/>
+      <rect x="17" y="8" width="6" height="8" rx="1"/>
+    </svg>
+  </button>
+
+  <!-- Bottom gradient fade -->
+  <div id="headline-gradient"></div>
+
+  <!-- Expanded overlay -->
+  <div class="overlay" id="overlay">
+    <div class="overlay-backdrop" id="overlay-backdrop"></div>
+    <div class="overlay-card" id="overlay-card">
+      <button class="overlay-close" id="overlay-close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="6" y1="6" x2="18" y2="18"/>
+          <line x1="18" y1="6" x2="6" y2="18"/>
+        </svg>
+      </button>
+      <div class="overlay-inner">
+        <div class="card-headline" id="overlay-headline"></div>
+        <div class="card-body" id="overlay-body"></div>
+        <div class="card-detail" id="overlay-detail"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Color palette ──
+    const COLORS = {
+      smokyBlack:  { bg: '#100C0B', text: '#99A57D', textSecondary: '#7A8564' },
+      eerieLt:     { bg: '#282723', text: '#F77E0D', textSecondary: '#C4650A' },
+      eerieBlack:  { bg: '#1C1B17', text: '#FFFFFF', textSecondary: '#BFBFBF' },
+      hotOrange:   { bg: '#Eb4604', text: '#FFFFFF', textSecondary: '#FFDCC8' },
+      moss:        { bg: '#99A57D', text: '#100C0B', textSecondary: '#3A3529' },
+      orangeWheel: { bg: '#F77E0D', text: '#100C0B', textSecondary: '#3A3529' },
+      night:       { bg: '#171614', text: '#99A57D', textSecondary: '#7A8564' },
+      white:       { bg: '#FFFFFF', text: '#1C1B17', textSecondary: '#5A5850' },
+    };
+
+    // ── Card data — dramatically varied sizes ──
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const CARDS = [
+      {
+        headline: 'You Smell\nBad',
+        body: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+        detail: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        color: COLORS.hotOrange,
+        w: Math.round(vw * 0.55),
+        h: Math.round(vh * 0.52),
+        x: Math.round(vw * 0.03),
+        y: Math.round(vh * 0.04),
+        headSize: 48,
+        bodySize: 16,
+      },
+      {
+        headline: 'Want To Learn\nTo Fart\nBackwards?',
+        body: 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. Nisi ut aliquip ex ea commodo consequat.',
+        detail: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        color: COLORS.eerieBlack,
+        w: 320,
+        h: 380,
+        x: Math.round(vw * 0.35),
+        y: Math.round(vh * 0.30),
+        headSize: 32,
+        bodySize: 16,
+      },
+      {
+        headline: 'Say Hello\nTo Your\nMother\nFor Me',
+        body: 'Duis aute irure dolor in reprehenderit in voluptate velit esse. Cillum dolore eu fugiat nulla pariatur.',
+        detail: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        color: COLORS.orangeWheel,
+        w: 220,
+        h: 200,
+        x: Math.round(vw * 0.60),
+        y: Math.round(vh * 0.03),
+        headSize: 28,
+        bodySize: 16,
+      },
+      {
+        headline: 'Nap Time',
+        body: 'Excepteur sint occaecat cupidatat non proident, sunt in culpa. Qui officia deserunt mollit anim id est laborum.',
+        detail: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        color: COLORS.moss,
+        w: 260,
+        h: 280,
+        x: Math.round(vw * 0.14),
+        y: Math.round(vh * 0.52),
+        headSize: 30,
+        bodySize: 16,
+      },
+      {
+        headline: 'Don\'t Look\nI\'m Naked',
+        body: 'Pellentesque habitant morbi tristique senectus et netus et malesuada. Fames ac turpis egestas sed tempus urna.',
+        detail: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        color: COLORS.eerieLt,
+        w: Math.round(vw * 0.38),
+        h: Math.round(vh * 0.34),
+        x: Math.round(vw * 0.55),
+        y: Math.round(vh * 0.38),
+        headSize: 36,
+        bodySize: 16,
+      },
+      {
+        headline: 'I Don\'t Know\nYour Friend',
+        body: 'Vivamus arcu felis, bibendum ut tristique vitae, sagittis imperdiet. Nunc non blandit massa enim nec dui.',
+        detail: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        color: COLORS.night,
+        w: 180,
+        h: 240,
+        x: Math.round(vw * 0.82),
+        y: Math.round(vh * 0.10),
+        headSize: 22,
+        bodySize: 16,
+      },
+      {
+        headline: 'You\'ve Got\nPretty Teeth',
+        body: 'Maecenas ultricies mi eget mauris pharetra et ultrices neque. Ornare aenean euismod elementum nisi quis eleifend.',
+        detail: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        color: COLORS.white,
+        w: 400,
+        h: 200,
+        x: Math.round(vw * 0.38),
+        y: Math.round(vh * 0.72),
+        headSize: 34,
+        bodySize: 16,
+      },
+    ];
+
+    // ── State ──
+    let topZ = CARDS.length + 1;
+
+    // ── Build cards ──
+    const canvas = document.getElementById('canvas');
+
+    CARDS.forEach((data, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.width = data.w + 'px';
+      card.style.height = data.h + 'px';
+      card.style.left = data.x + 'px';
+      card.style.top = data.y + 'px';
+      card.style.zIndex = i + 1;
+      card.style.background = data.color.bg;
+      card.style.color = data.color.text;
+      card.dataset.index = i;
+
+      card.innerHTML = `
+        <div class="card-content">
+          <div class="card-headline" style="font-size:${data.headSize}px; white-space:pre-line">${data.headline}</div>
+          <div class="card-body" style="font-size:${data.bodySize}px; color:${data.color.textSecondary}">${data.body}</div>
+        </div>
+        <button class="card-expand-btn" data-index="${i}" title="Expand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="${data.color.text}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9"/>
+            <polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/>
+            <line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+        </button>
+        <div class="card-resize-handle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="${data.color.text}" stroke-width="2" stroke-linecap="round">
+            <line x1="20" y1="14" x2="14" y2="20"/>
+            <line x1="20" y1="8" x2="8" y2="20"/>
+          </svg>
+        </div>
+      `;
+
+      canvas.appendChild(card);
+    });
+
+    // ── Drag logic ──
+    let dragCard = null;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    // ── Resize logic ──
+    let resizeCard = null;
+    let resizeStartX = 0;
+    let resizeStartY = 0;
+    let resizeStartW = 0;
+    let resizeStartH = 0;
+    const MIN_W = 120;
+    const MIN_H = 100;
+
+    const mql = window.matchMedia('(max-width: 1024px)');
+    let isSmallScreen = mql.matches;
+
+    function onPointerDown(e) {
+      if (isSmallScreen) return;
+      const card = e.target.closest('.card');
+      if (!card) return;
+      if (e.target.closest('.card-expand-btn')) return;
+
+      // Resize handle takes priority
+      if (e.target.closest('.card-resize-handle')) {
+        resizeCard = card;
+        resizeStartX = e.clientX;
+        resizeStartY = e.clientY;
+        resizeStartW = card.offsetWidth;
+        resizeStartH = card.offsetHeight;
+        card.style.zIndex = ++topZ;
+        card.classList.add('resizing');
+        card.setPointerCapture(e.pointerId);
+        return;
+      }
+
+      dragCard = card;
+      const rect = card.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+
+      card.style.zIndex = ++topZ;
+      card.classList.add('dragging');
+      card.setPointerCapture(e.pointerId);
+    }
+
+    function onPointerMove(e) {
+      if (resizeCard) {
+        const newW = Math.max(MIN_W, resizeStartW + (e.clientX - resizeStartX));
+        const newH = Math.max(MIN_H, resizeStartH + (e.clientY - resizeStartY));
+        resizeCard.style.width = newW + 'px';
+        resizeCard.style.height = newH + 'px';
+        return;
+      }
+      if (!dragCard) return;
+      dragCard.style.left = (e.clientX - offsetX) + 'px';
+      dragCard.style.top = (e.clientY - offsetY) + 'px';
+    }
+
+    function onPointerUp() {
+      if (resizeCard) {
+        resizeCard.classList.remove('resizing');
+        resizeCard = null;
+      }
+      if (dragCard) {
+        dragCard.classList.remove('dragging');
+        dragCard = null;
+      }
+    }
+
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+
+    // ── Responsive layout toggle ──
+    function applyLayout() {
+      const cards = document.querySelectorAll('.card');
+      if (isSmallScreen) {
+        cards.forEach((card) => {
+          card.style.width = '';
+          card.style.height = '';
+          card.style.left = '';
+          card.style.top = '';
+          card.style.zIndex = '';
+        });
+      } else {
+        cards.forEach((card, i) => {
+          const data = CARDS[i];
+          if (!card.style.width || card.style.width === '') {
+            card.style.width = data.w + 'px';
+            card.style.height = data.h + 'px';
+            card.style.left = data.x + 'px';
+            card.style.top = data.y + 'px';
+            card.style.zIndex = i + 1;
+          }
+        });
+      }
+    }
+
+    mql.addEventListener('change', (e) => {
+      isSmallScreen = e.matches;
+      applyLayout();
+      updateCanvasPadding();
+    });
+
+    applyLayout();
+
+    // ── Expand / Overlay ──
+    const overlay      = document.getElementById('overlay');
+    const overlayCard  = document.getElementById('overlay-card');
+    const overlayHead  = document.getElementById('overlay-headline');
+    const overlayBody  = document.getElementById('overlay-body');
+    const overlayDet   = document.getElementById('overlay-detail');
+
+    function openCard(index) {
+      const data = CARDS[index];
+      overlayCard.style.background = data.color.bg;
+      overlayCard.style.color = data.color.text;
+      overlayHead.style.whiteSpace = 'pre-line';
+      overlayHead.textContent = data.headline;
+      overlayBody.textContent = data.body;
+      overlayBody.style.color = data.color.textSecondary;
+      overlayDet.textContent = data.detail;
+      overlayDet.style.color = data.color.textSecondary;
+      // Convert hex text color to rgba for the divider line
+      const hex = data.color.text.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      overlayDet.style.borderTopColor = `rgba(${r},${g},${b},0.3)`;
+
+      const closeBtn = document.getElementById('overlay-close');
+      closeBtn.querySelector('svg').setAttribute('stroke', data.color.text);
+
+      overlay.classList.add('active');
+    }
+
+    function closeOverlay() {
+      overlay.classList.remove('active');
+    }
+
+    canvas.addEventListener('click', (e) => {
+      const btn = e.target.closest('.card-expand-btn');
+      if (btn) {
+        openCard(parseInt(btn.dataset.index));
+      }
+    });
+
+    document.getElementById('overlay-backdrop').addEventListener('click', closeOverlay);
+    document.getElementById('overlay-close').addEventListener('click', closeOverlay);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeOverlay();
+    });
+
+    // ── Scatter cards randomly ──
+    document.getElementById('scatter-btn').addEventListener('click', () => {
+      const cards = document.querySelectorAll('.card');
+      const viewW = window.innerWidth;
+      const viewH = window.innerHeight;
+
+      cards.forEach((card) => {
+        card.classList.add('aligning');
+
+        // Random size between 150–500px wide, 150–450px tall
+        const w = Math.round(150 + Math.random() * 350);
+        const h = Math.round(150 + Math.random() * 300);
+
+        // Random position, keeping cards within the viewport
+        const x = Math.round(Math.random() * (viewW - w));
+        const y = Math.round(Math.random() * (viewH - h));
+
+        card.style.width = w + 'px';
+        card.style.height = h + 'px';
+        card.style.left = x + 'px';
+        card.style.top = y + 'px';
+
+        card.addEventListener('transitionend', function handler() {
+          card.classList.remove('aligning');
+          card.removeEventListener('transitionend', handler);
+        });
+      });
+    });
+
+    // ── Align cards in a horizontal row ──
+    document.getElementById('align-btn').addEventListener('click', () => {
+      const cards = document.querySelectorAll('.card');
+      const count = cards.length;
+      const gap = 20;
+      const padding = 32;
+      const viewW = window.innerWidth;
+      const viewH = window.innerHeight;
+
+      // Account for the giant headline at the bottom
+      const headlineEl = document.getElementById('giant-headline');
+      const headlineH = headlineEl.offsetHeight;
+      const usableH = viewH - headlineH;
+
+      // Calculate uniform card size to fit all in one row
+      const availW = viewW - (padding * 2) - (gap * (count - 1));
+      const cardW = Math.floor(availW / count);
+      const cardH = Math.round(usableH * 0.7);
+      const targetY = Math.round((usableH - cardH) / 2);
+
+      let cursorX = padding;
+
+      cards.forEach((card) => {
+        card.classList.add('aligning');
+
+        card.style.width = cardW + 'px';
+        card.style.height = cardH + 'px';
+        card.style.left = cursorX + 'px';
+        card.style.top = targetY + 'px';
+
+        cursorX += cardW + gap;
+
+        card.addEventListener('transitionend', function handler() {
+          card.classList.remove('aligning');
+          card.removeEventListener('transitionend', handler);
+        });
+      });
+    });
+
+    // ── Fit element font-size to fill target width ──
+    function fitToWidth(el, target) {
+      let lo = 10, hi = 800, mid;
+      while (hi - lo > 1) {
+        mid = Math.floor((lo + hi) / 2);
+        el.style.fontSize = mid + 'px';
+        if (el.scrollWidth <= target) {
+          lo = mid;
+        } else {
+          hi = mid;
+        }
+      }
+      el.style.fontSize = lo + 'px';
+    }
+
+    function fitHeadline() {
+      const container = document.getElementById('giant-headline');
+      const target = window.innerWidth;
+
+      if (isSmallScreen) {
+        // Fit each line independently
+        container.style.fontSize = '';
+        const lines = container.querySelectorAll('.headline-line');
+        lines.forEach(line => fitToWidth(line, target));
+      } else {
+        // Fit the whole thing as one line
+        const lines = container.querySelectorAll('.headline-line');
+        lines.forEach(line => { line.style.fontSize = ''; });
+        fitToWidth(container, target);
+      }
+    }
+
+    // ── Size gradient to cover headline area ──
+    function sizeGradient() {
+      const headlineEl = document.getElementById('giant-headline');
+      const gradient = document.getElementById('headline-gradient');
+      const multiplier = isSmallScreen ? 1.15 : 3;
+      const extra = isSmallScreen ? 15 : 0;
+      gradient.style.height = (headlineEl.offsetHeight * multiplier + extra) + 'px';
+    }
+
+    // ── Dynamic bottom padding for tablet/mobile scroll ──
+    function updateCanvasPadding() {
+      if (!isSmallScreen) {
+        canvas.style.paddingBottom = '';
+        return;
+      }
+      // Use the top edge of the black fill as the target
+      const gradient = document.getElementById('headline-gradient');
+      const fillTop = gradient.getBoundingClientRect().top;
+      // Padding = enough so the last card clears the fill, plus a small gap
+      const padding = window.innerHeight - fillTop + 20;
+      canvas.style.paddingBottom = Math.max(padding, 200) + 'px';
+    }
+
+    // Wait for the font to load before fitting
+    document.fonts.ready.then(() => {
+      fitHeadline();
+      sizeGradient();
+      updateCanvasPadding();
+    });
+    window.addEventListener('resize', () => {
+      fitHeadline();
+      sizeGradient();
+      updateCanvasPadding();
+    });
+  </script>
+</body>
+</html>
