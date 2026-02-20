@@ -32,7 +32,7 @@ Everything is in one self-contained HTML file with three inline sections:
 
 **Resize System** — Cards have a resize handle (bottom-right corner) for freeform resizing on desktop. Disabled on tablet/mobile.
 
-**Expand Overlay** — Full-viewport takeover (`100vw × 100vh`) triggered by the expand button on each card. Shows headline (with preserved line breaks), body, and detail text. Closes via backdrop click, X button, or Escape key.
+**Expand Overlay** — Full-viewport takeover (`100vw × 100vh`) triggered by the expand button on each card. Shows headline (with preserved line breaks), body, and detail text. Closes via backdrop click, X button, or Escape key. The divider line between body and detail uses the card's text color at 30% opacity (hex-to-rgba conversion). On tablet/mobile, CSS rules for hiding card body text and collapsing headline whitespace are scoped to `#canvas` so the overlay content is unaffected.
 
 **Headline Fit** — Binary search algorithm sizes "LETS TALK TOILETS" to fill the window width exactly. On tablet/mobile, each line ("LETS TALK" and "TOILETS") is fit independently. Runs after `document.fonts.ready` and on resize.
 
@@ -43,7 +43,7 @@ Everything is in one self-contained HTML file with three inline sections:
 Three breakpoints:
 
 - **Desktop (>1024px)** — Cards are absolutely positioned and draggable/resizable. Headline renders as a single line.
-- **Tablet (≤1024px)** — Cards stack vertically in a scrollable column (107px tall each). Drag/resize disabled. Headline splits into two lines ("LETS TALK" / "TOILETS"). Cards use `z-index: 0` to stay behind the headline and gradient.
+- **Tablet (≤1024px)** — Cards stack vertically in a scrollable column (107px tall each, vertically centered content). Drag/resize disabled. Headline splits into two lines ("LETS TALK" / "TOILETS"). Cards use `z-index: 0` to stay behind the headline and gradient.
 - **Mobile (≤600px)** — Same as tablet but with tighter padding and smaller cards (87px tall).
 
 ### Bottom Gradient/Fill
@@ -63,3 +63,7 @@ Reference image at `Color Palette/Colors.jpg`. The palette is defined in the `CO
 Two Google Fonts loaded via CDN:
 - **Big Shoulders Display** (700, 800, 900) — giant bottom headline and card headlines
 - **Inter** (400, 500) — body copy
+
+## Repository
+
+GitHub: `BRUNDUNCLAP/TOILETTALK` — push requires a Personal Access Token (no SSH keys configured). Token is not stored in git config; must be provided for each push or embedded temporarily in the remote URL.
