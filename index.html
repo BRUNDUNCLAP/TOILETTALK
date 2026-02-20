@@ -374,13 +374,23 @@
       }
 
       #canvas .card-body { display: none; }
-      #canvas .card-headline { white-space: normal !important; margin-bottom: 0; }
-      #canvas .card-content { justify-content: center; }
+      #canvas .card-headline { white-space: nowrap !important; margin-bottom: 0; overflow: hidden; }
+      #canvas .card-content { justify-content: center; flex: 1; min-width: 0; }
       .card-resize-handle { display: none; }
 
-      .card-expand-btn {
+      .card {
+        flex-direction: row !important;
+        align-items: center;
+      }
+
+      #canvas .card-expand-btn {
+        position: relative;
+        bottom: auto;
+        right: auto;
         width: 44px;
         height: 44px;
+        flex-shrink: 0;
+        margin-left: 12px;
       }
 
       .card-expand-btn svg {
@@ -726,6 +736,7 @@
     mql.addEventListener('change', (e) => {
       isSmallScreen = e.matches;
       applyLayout();
+      fitCardHeadlines();
       updateCanvasPadding();
     });
 
@@ -901,15 +912,39 @@
       canvas.style.paddingBottom = Math.max(padding, 200) + 'px';
     }
 
+    // ── Fit collapsed card headlines on tablet/mobile ──
+    function fitCardHeadlines() {
+      if (!isSmallScreen) {
+        // Restore original sizes on desktop
+        document.querySelectorAll('.card').forEach((card, i) => {
+          const headline = card.querySelector('.card-headline');
+          headline.style.fontSize = CARDS[i].headSize + 'px';
+        });
+        return;
+      }
+      document.querySelectorAll('.card').forEach((card, i) => {
+        const headline = card.querySelector('.card-headline');
+        const availW = headline.parentElement.clientWidth;
+        let size = CARDS[i].headSize;
+        headline.style.fontSize = size + 'px';
+        while (headline.scrollWidth > availW && size > 8) {
+          size--;
+          headline.style.fontSize = size + 'px';
+        }
+      });
+    }
+
     // Wait for the font to load before fitting
     document.fonts.ready.then(() => {
       fitHeadline();
       sizeGradient();
+      fitCardHeadlines();
       updateCanvasPadding();
     });
     window.addEventListener('resize', () => {
       fitHeadline();
       sizeGradient();
+      fitCardHeadlines();
       updateCanvasPadding();
     });
   </script>
