@@ -22,7 +22,7 @@ Everything is in one self-contained HTML file with three inline sections:
 
 - **`<style>`** — All CSS including card layout, drag states, overlay modal, giant bottom headline, responsive breakpoints, and scrollbar styling
 - **`<body>`** — Static markup for the canvas container, overlay modal structure, scatter/align buttons, bottom gradient, and the "LETS TALK TOILETS" headline element
-- **`<script>`** — All JS: color palette constants, card data array, DOM card builder, pointer-event drag system, resize handles, overlay expand/close logic, headline auto-fit, gradient sizing, and dynamic scroll padding
+- **`<script>`** — All JS: color palette constants, card data array, DOM card builder, pointer-event drag system, resize handles, overlay expand/close logic, headline auto-fit, card headline auto-fit, gradient sizing, and dynamic scroll padding
 
 ### Key Systems
 
@@ -36,14 +36,16 @@ Everything is in one self-contained HTML file with three inline sections:
 
 **Headline Fit** — Binary search algorithm sizes "LETS TALK TOILETS" to fill the window width exactly. On tablet/mobile, each line ("LETS TALK" and "TOILETS") is fit independently. Runs after `document.fonts.ready` and on resize.
 
+**Card Headline Auto-Fit (`fitCardHeadlines()`)** — On tablet/mobile, collapsed card headlines are forced to a single line (newlines replaced with spaces, `white-space: nowrap`). A binary search algorithm (8–48px range) finds the largest font size that fits within the available card width minus the expand button. On desktop, original multi-line headlines and font sizes are restored. Runs after `document.fonts.ready`, on resize, and on media query changes.
+
 **Scatter/Align Buttons** — Fixed-position buttons (bottom-right) that randomize card positions/sizes or align them in a uniform horizontal row. Desktop only.
 
 ### Responsive Layout
 
 Three breakpoints:
 
-- **Desktop (>1024px)** — Cards are absolutely positioned and draggable/resizable. Headline renders as a single line.
-- **Tablet (≤1024px)** — Cards stack vertically in a scrollable column (107px tall each, vertically centered content). Drag/resize disabled. Headline splits into two lines ("LETS TALK" / "TOILETS"). Cards use `z-index: 0` to stay behind the headline and gradient.
+- **Desktop (>1024px)** — Cards are absolutely positioned and draggable/resizable. Headline renders as a single line. Expand button is absolutely positioned (bottom-right of card).
+- **Tablet (≤1024px)** — Cards stack vertically in a scrollable column (107px tall each). Cards use `flex-direction: row` with the headline content taking `flex: 1` and the expand button as a `flex-shrink: 0` element on the right (no overlap). Drag/resize disabled. Headline splits into two lines ("LETS TALK" / "TOILETS"). Cards use `z-index: 0` to stay behind the headline and gradient.
 - **Mobile (≤600px)** — Same as tablet but with tighter padding and smaller cards (87px tall).
 
 ### Bottom Gradient/Fill
@@ -63,6 +65,11 @@ Reference image at `Color Palette/Colors.jpg`. The palette is defined in the `CO
 Two Google Fonts loaded via CDN:
 - **Big Shoulders Display** (700, 800, 900) — giant bottom headline and card headlines
 - **Inter** (400, 500) — body copy
+
+## Deployment
+
+- **GitHub Pages:** `https://brundunclap.github.io/TOILETTALK/` — deploys from `main` branch automatically.
+- **Vercel (production):** `https://letstalktoilets.com/` — connected to the `BRUNDUNCLAP/TOILETTALK` GitHub repo, auto-deploys on push to `main`.
 
 ## Repository
 
