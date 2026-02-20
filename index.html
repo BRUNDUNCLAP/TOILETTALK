@@ -374,22 +374,23 @@
       }
 
       #canvas .card-body { display: none; }
-      #canvas .card-headline { white-space: nowrap !important; margin-bottom: 0; overflow: hidden; }
-      #canvas .card-content { justify-content: center; flex: 1; min-width: 0; }
+      #canvas .card-headline { white-space: nowrap !important; margin-bottom: 0 !important; overflow: hidden; }
+      #canvas .card-content { justify-content: center; flex: 1 1 0% !important; min-width: 0 !important; overflow: hidden; }
       .card-resize-handle { display: none; }
 
       .card {
         flex-direction: row !important;
-        align-items: center;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
       }
 
       #canvas .card-expand-btn {
-        position: relative;
-        bottom: auto;
-        right: auto;
-        width: 44px;
-        height: 44px;
-        flex-shrink: 0;
+        position: relative !important;
+        bottom: auto !important;
+        right: auto !important;
+        width: 44px !important;
+        height: 44px !important;
+        flex-shrink: 0 !important;
         margin-left: 12px;
       }
 
@@ -915,22 +916,39 @@
     // ── Fit collapsed card headlines on tablet/mobile ──
     function fitCardHeadlines() {
       if (!isSmallScreen) {
-        // Restore original sizes on desktop
+        // Restore original sizes and white-space on desktop
         document.querySelectorAll('.card').forEach((card, i) => {
           const headline = card.querySelector('.card-headline');
           headline.style.fontSize = CARDS[i].headSize + 'px';
+          headline.style.whiteSpace = 'pre-line';
+          headline.textContent = CARDS[i].headline;
         });
         return;
       }
       document.querySelectorAll('.card').forEach((card, i) => {
         const headline = card.querySelector('.card-headline');
-        const availW = headline.parentElement.clientWidth;
-        let size = CARDS[i].headSize;
-        headline.style.fontSize = size + 'px';
-        while (headline.scrollWidth > availW && size > 8) {
-          size--;
-          headline.style.fontSize = size + 'px';
+        // Replace newlines with spaces and force single line
+        headline.textContent = CARDS[i].headline.replace(/\n/g, ' ');
+        headline.style.whiteSpace = 'nowrap';
+        // Measure available width from the card minus padding and button space
+        const cardStyle = getComputedStyle(card);
+        const cardPadL = parseFloat(cardStyle.paddingLeft);
+        const cardPadR = parseFloat(cardStyle.paddingRight);
+        const btn = card.querySelector('.card-expand-btn');
+        const btnW = btn ? btn.offsetWidth + 12 : 0; // 12 = margin-left
+        const availW = card.clientWidth - cardPadL - cardPadR - btnW;
+        // Binary search for largest font size that fits
+        let lo = 8, hi = 48;
+        while (hi - lo > 1) {
+          const mid = Math.floor((lo + hi) / 2);
+          headline.style.fontSize = mid + 'px';
+          if (headline.scrollWidth <= availW) {
+            lo = mid;
+          } else {
+            hi = mid;
+          }
         }
+        headline.style.fontSize = lo + 'px';
       });
     }
 
