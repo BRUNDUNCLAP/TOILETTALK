@@ -34,8 +34,8 @@
     #giant-headline {
       position: fixed;
       bottom: -0.06em;
-      left: 50%;
-      transform: translateX(-50%);
+      left: 0;
+      width: 100vw;
       font-family: 'Big Shoulders Display', 'Impact', 'Arial Narrow', sans-serif;
       font-weight: 900;
       text-transform: uppercase;
@@ -44,7 +44,7 @@
       pointer-events: none;
       z-index: 0;
       line-height: 0.85;
-      letter-spacing: calc(-0.02em - 10px);
+      letter-spacing: -0.02em;
       user-select: none;
       text-align: center;
       font-size: 18vw;
@@ -404,7 +404,7 @@
 
       #giant-headline {
         z-index: 2;
-        line-height: 0.78;
+        line-height: 0.8;
       }
       .headline-line {
         display: block;
@@ -875,7 +875,7 @@
 
     function fitHeadline() {
       const container = document.getElementById('giant-headline');
-      const target = window.innerWidth + 15;
+      const target = window.innerWidth;
 
       if (isSmallScreen) {
         // Fit each line independently
